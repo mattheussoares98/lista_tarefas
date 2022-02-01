@@ -7,7 +7,7 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-List _list = ['teste', 'teste'];
+List _list = [];
 
 class _HomePageState extends State<HomePage> {
   @override
@@ -23,24 +23,34 @@ class _HomePageState extends State<HomePage> {
       body: ListView.builder(
         itemCount: _list.length,
         itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                CheckboxListTile(
-                  title: Text(_list[index]),
-                  value: false,
-                  onChanged: (bool? value) {
-                    setState(() {});
-                  },
-                ),
-                const Divider(
-                  height: 1,
-                  color: Colors.black,
-                ),
-              ],
-            ),
-          );
+          return _list.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Nenhuma tarefa foi cadastrada',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      CheckboxListTile(
+                        title: Text(_list[index]),
+                        value: false,
+                        onChanged: (bool? value) {
+                          setState(() {});
+                        },
+                      ),
+                      const Divider(
+                        height: 1,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ),
+                );
         },
       ),
       floatingActionButton: FloatingActionButton(
