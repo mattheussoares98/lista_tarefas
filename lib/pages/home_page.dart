@@ -11,7 +11,7 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-Map _works = {};
+List _works = [];
 
 final _key = GlobalKey<FormState>();
 TextEditingController _textController = TextEditingController();
@@ -43,30 +43,17 @@ class _HomePageState extends State<HomePage> {
 
   _saveWork() {
     bool _isValid = _key.currentState!.validate();
-    print(_textController.text);
 
     if (!_isValid) {
       return;
     }
+
     setState(() {
 //salvando os dados na lista local antes de salvar no dispositivo
-
-      var id = DateTime.now().microsecondsSinceEpoch;
-      print(id);
-      _works.putIfAbsent(
-        id,
-        () => {
-          'id': id,
-          'work': _textController.text,
-          'marked': false,
-        },
-      );
-      print(id);
-
-      // _works.add({
-      //   'work': _textController.text,
-      //   'marked': false,
-      // });
+      _works.add({
+        'work': _textController.text,
+        'marked': false,
+      });
     });
   }
 
@@ -89,7 +76,7 @@ class _HomePageState extends State<HomePage> {
 
   _removeFileAndList(int index) {
     setState(() {
-      _works.remove(index);
+      _works.removeAt(index);
     });
     _saveFile();
   }
@@ -103,7 +90,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    print(_works);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.purple,
@@ -125,9 +111,41 @@ class _HomePageState extends State<HomePage> {
               itemCount: _works.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: ValueKey(_works[index]),
+                  key: ValueKey(DateTime.now().microsecondsSinceEpoch),
                   onDismissed: (direction) {
+                    Map _lastWork = {};
+
+                    _lastWork = _works[index];
                     _removeFileAndList(index);
+
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Item excluído',
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _works.insert(index, _lastWork);
+                                });
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
+                              },
+                              child: const Text(
+                                'Desfazer',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   },
                   crossAxisEndOffset: 0.6,
                   background: Container(
