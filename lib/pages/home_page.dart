@@ -11,11 +11,10 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-List _list = [];
+Map _works = {};
 
-TextEditingController _textController = TextEditingController();
 final _key = GlobalKey<FormState>();
-bool _isValid = _key.currentState!.validate();
+TextEditingController _textController = TextEditingController();
 
 class _HomePageState extends State<HomePage> {
   Future<File> _getFile() async {
@@ -29,22 +28,9 @@ class _HomePageState extends State<HomePage> {
     return File('${directory.path}/dados.json');
   }
 
-  _saveWork() {
-    if (!_isValid) {
-      return;
-    }
-    setState(() {
-//salvando os dados na lista local antes de salvar no dispositivo
-      _list.add({
-        'work': _textController.text,
-        'marked': false,
-      });
-    });
-  }
-
   _saveFile() async {
 //convertendo os dados que serão salvos para String. Assim fica no formato json
-    String data = json.encode(_list);
+    String data = json.encode(_works);
 
 //obtendo o arquivo onde salvará as informações
     File file = await _getFile();
@@ -53,6 +39,35 @@ class _HomePageState extends State<HomePage> {
     file.writeAsString(data);
 
     _textController.clear();
+  }
+
+  _saveWork() {
+    bool _isValid = _key.currentState!.validate();
+    print(_textController.text);
+
+    if (!_isValid) {
+      return;
+    }
+    setState(() {
+//salvando os dados na lista local antes de salvar no dispositivo
+
+      var id = DateTime.now().microsecondsSinceEpoch;
+      print(id);
+      _works.putIfAbsent(
+        id,
+        () => {
+          'id': id,
+          'work': _textController.text,
+          'marked': false,
+        },
+      );
+      print(id);
+
+      // _works.add({
+      //   'work': _textController.text,
+      //   'marked': false,
+      // });
+    });
   }
 
   Future _obteinSavedFiles() async {
@@ -65,7 +80,7 @@ class _HomePageState extends State<HomePage> {
 //try/catch
       String data = await file.readAsString();
       setState(() {
-        _list = json.decode(data);
+        _works = json.decode(data);
       });
     } catch (e) {
       e;
@@ -74,7 +89,7 @@ class _HomePageState extends State<HomePage> {
 
   _removeFileAndList(int index) {
     setState(() {
-      _list.removeAt(index);
+      _works.remove(index);
     });
     _saveFile();
   }
@@ -88,40 +103,61 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print(_works);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.purple,
         title: const Text('Lista de tarefas'),
         centerTitle: true,
       ),
-      body: ListView.builder(
-        itemCount: _list.length,
-        itemBuilder: (context, index) {
-          return _list.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Nenhuma tarefa foi cadastrada',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
+      body: _works.isEmpty
+          ? const Center(
+              child: Text(
+                'Nenhuma tarefa foi cadastrada',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _works.length,
+              itemBuilder: (context, index) {
+                return Dismissible(
+                  key: ValueKey(_works[index]),
+                  onDismissed: (direction) {
+                    _removeFileAndList(index);
+                  },
+                  crossAxisEndOffset: 0.6,
+                  background: Container(
+                    color: Colors.red,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.all(10.0),
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                )
-              : Dismissible(
-                  key: ValueKey(_list[index]),
-                  onDismissed: (direction) => _removeFileAndList(index),
-                  // confirmDismiss: (direction) => _removeFileAndList(index),
+                  direction: DismissDirection.endToStart,
                   child: Column(
                     children: [
                       CheckboxListTile(
                         title: Text(
-                          _list[index]['work'],
+                          _works[index]['work'],
                         ),
-                        value: _list[index]['marked'],
+                        value: _works[index]['marked'],
                         onChanged: (bool? value) {
                           setState(() {
-                            _list[index]['marked'] = value;
+                            _works[index]['marked'] = value;
                           });
+
                           _saveFile();
                         },
                       ),
@@ -132,8 +168,8 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 );
-        },
-      ),
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         backgroundColor: Colors.purple,
@@ -149,9 +185,9 @@ class _HomePageState extends State<HomePage> {
                       textAlign: TextAlign.center,
                     ),
                     content: TextFormField(
-                      validator: (value) {
-                        if (_textController.text.isEmpty) {
-                          return 'Digite algo';
+                      validator: (_name) {
+                        if (_name!.trim().isEmpty) {
+                          return 'Preencha o nome';
                         }
                         return null;
                       },
@@ -159,8 +195,6 @@ class _HomePageState extends State<HomePage> {
                       decoration: const InputDecoration(
                         label: Text('Digite a tarefa'),
                       ),
-                      // onChanged: (value) {
-                      // },
                     ),
                     actions: [
                       Row(
@@ -173,19 +207,17 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           TextButton(
-                            child: const Text('Salvar'),
-                            onPressed: () {
-                              if (!_isValid) {
-                                print('não está válido');
-                                return;
-                              } else {
-                                print('está válido');
+                              child: const Text('Salvar'),
+                              onPressed: () {
+                                bool _isValid = _key.currentState!.validate();
+                                if (!_isValid) {
+                                  print('não está válido');
+                                  return;
+                                }
                                 _saveWork();
                                 _saveFile();
                                 Navigator.of(context).pop();
-                              }
-                            },
-                          ),
+                              }),
                         ],
                       ),
                     ],
